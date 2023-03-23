@@ -29,6 +29,7 @@ const int PADDLE_HEIGHT = 10;
 #define BLUE al_map_rgb(0, 0, 255)
 #define BLACK al_map_rgb(0, 0, 0)
 #define GREY al_map_rgb(125, 125, 125)
+#define ORANGE al_map_rgb(240, 134, 94)
 
 int map[] ={
     1,1,1,1,1,1,1,1,
@@ -50,7 +51,8 @@ void drawBall(float cx, float cy, float *V)
   al_draw_filled_ellipse(cx,cy,5,5,al_map_rgb(0,0,0));
   cx+=V[0];
   cy+=V[1];
-  if(fabs(V[1]) > 3 || fabs(V[0]) > 3) {ballColor=RED;}
+  if(fabs(V[1]) > 5 || fabs(V[0]) > 3) {ballColor=ORANGE;}
+  if(fabs(V[1]) > 5 && fabs(V[0]) > 3) {ballColor=RED;}
   //ballColor = fabs(V[1]) < 3 ? WHITE : RED;
   al_draw_filled_ellipse(cx,cy,5,5,ballColor);
   //printf("la vitesse de la balle x:%f, y:%f \n",V[0],V[1]);
@@ -154,7 +156,8 @@ int main()
 	ALLEGRO_DISPLAY *display;
   ALLEGRO_EVENT_QUEUE *queue;
   ALLEGRO_TIMER *timer;
-  ALLEGRO_FONT *font;
+  ALLEGRO_FONT *Arial20;
+  ALLEGRO_FONT *Arial16;
 
   al_init();
   al_install_keyboard();
@@ -167,8 +170,9 @@ int main()
   
   display=al_create_display(SCREEN_WIDTH+SCORE_WIDTH,SCREEN_HEIGHT);al_set_window_title(display, "Casse Briques");
   queue =al_create_event_queue();
-  timer =al_create_timer(1.0/120);
-  font = al_load_font("source/arial.ttf", 20, 0);
+  timer =al_create_timer(1.0/60);
+  Arial20 = al_load_font("source/arial.ttf", 20, 0);
+  Arial16 = al_load_font("source/arial.ttf", 16, 0);
 
   al_register_event_source(queue, al_get_keyboard_event_source()     );
   al_register_event_source(queue, al_get_display_event_source(display));
@@ -184,8 +188,8 @@ int main()
   float vx=0.2,vy=0.2;
   bool running = true;
   int **coordMatrix;
-  int startV1 = (rand() % 5)+1;
-  int startV2 = (rand() % 5)+1;
+  int startV1 = (rand() % 10)+4;
+  int startV2 = (rand() % 10)+2;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
 
@@ -205,8 +209,8 @@ int main()
 
 		if(al_key_down(&keyState, ALLEGRO_KEY_SPACE))
     {
-      float un=(float)startV1/10;
-      float deux=(((float)startV2*2)/10)-0.5;
+      float un=(float)startV1/5;
+      float deux=(((float)startV2*2)/5)-1;
       //printf("%f,%f\n",un,deux);
       if(cx==SCREEN_WIDTH/2 && cy==SCREEN_WIDTH/2)
       {
@@ -232,28 +236,28 @@ int main()
       
       }
 			//gerer les deplacement de la bar
-			if(al_key_down(&keyState,ALLEGRO_KEY_LEFT))
+			if(al_key_down(&keyState,ALLEGRO_KEY_LEFT) || al_key_down(&keyState,ALLEGRO_KEY_A))
 			{
 				if(al_key_down(&keyState, ALLEGRO_KEY_LCTRL))
 					{
-						x1Bar-=5;
-						x2Bar-=5;
+						x1Bar-=7;
+						x2Bar-=7;
 					}
 				else{
-						x1Bar-=1;
-						x2Bar-=1;
+						x1Bar-=3;
+						x2Bar-=3;
 					}
 			}
-			if(al_key_down(&keyState,ALLEGRO_KEY_RIGHT))
+			if(al_key_down(&keyState,ALLEGRO_KEY_RIGHT) || al_key_down(&keyState,ALLEGRO_KEY_D))
 			{
 				if(al_key_down(&keyState, ALLEGRO_KEY_LCTRL))
 					{
-						x1Bar+=5;
-						x2Bar+=5;
+						x1Bar+=7;
+						x2Bar+=7;
 					}
 				else{
-						x1Bar+=1;
-						x2Bar+=1;
+						x1Bar+=3;
+						x2Bar+=3;
 					}
 			}
 		
@@ -270,23 +274,28 @@ int main()
       }
 
       //gestion vitesse Maximal de la balle
-      if(ballVector[1]>3) {vy=0;}
+      if(fabs(ballVector[1])>5) {vy=0;}
       else {vy=0.2;}
-      if(ballVector[0]>3) {vx=0;}
+      if(fabs(ballVector[0])>3) {vx=0;}
       else {vx=0.2;}
 
-      if(((cx-BALL_SIZE)<1 && ballVector[0]<0) || ((cx+BALL_SIZE)>SCREEN_WIDTH-1 && ballVector[0]>0))
+      if(((cx+BALL_SIZE)>SCREEN_WIDTH-1 && ballVector[0]>0))
         {
-          ballVector[0] = -ballVector[0];
+          ballVector[0] = -(ballVector[0] + vx);
+        }
+      if(((cx-BALL_SIZE)<1 && ballVector[0]<0) )
+        {
+          ballVector[0] = -(ballVector[0] - vx);
         }
             //haut      
       if((cy-BALL_SIZE)<1 && ballVector[1] <0)
         {
-            ballVector[1] = -ballVector[1];
+            ballVector[1] = -(ballVector[1] - vy);
         }
 
       //bar collision avec la ball
       if ((cy + ry) > 450 && (cy - ry) < 460) {
+        
     		if (((cx - rx) > x1Bar && (cx + rx) < x2Bar) && ballVector[1] > 0) 
 				{
         	ballVector[1] = -1 * fabs(ballVector[1] + vy);
@@ -294,11 +303,11 @@ int main()
     		} 
 				else if ((cx + rx) > x1Bar && (cx - rx) < (x1Bar + x2Bar) / 2 && ballVector[0] > 0) 
 				{
-        	ballVector[0] = -1 * fabs(ballVector[0] + vx);
+        	ballVector[0] = -(ballVector[0] + vx);
     		} 
 				else if ((cx - rx) < x2Bar && (cx + rx) > (x1Bar + x2Bar) / 2 && ballVector[0] < 0) 
 				{
-        	ballVector[0] = -1 * fabs(ballVector[0] + vx);
+        	ballVector[0] = -(ballVector[0] - vx);
           
     		}
         //printf("la vitesse de la balle x:%f, y:%f \n",ballVector[0],ballVector[1]);
@@ -311,12 +320,30 @@ int main()
 			cx+=ballVector[0];
 
 			collision = checkCollision(cx,cy,ballVector,coordMatrix);
-			if(collision==1) {ballVector[1] = -ballVector[1];score+=1;}
-			else if(collision==2) {ballVector[0] = -ballVector[0];score+=1;}
+			if(collision==1) {ballVector[1] = -(ballVector[1]-vy);score+=1;}
+			else if(collision==2) {
+        if(ballVector < 0)
+        {
+          ballVector[0] = -(ballVector[0]-vx);
+        }
+        else{
+          if(ballVector[0] == 0) {ballVector[0]=0.2;}
+          ballVector[0] = -(ballVector[0]+vx);
+        }
+        score+=1;
+      }
 
       al_draw_filled_rectangle(642,0,SCREEN_WIDTH+SCORE_WIDTH,SCREEN_HEIGHT,GREY);
-      al_draw_textf(font, BLACK, 650, 10, 0, "Score: %d", score);
-      al_draw_textf(font, BLACK, 650, 40, 0, "Lives: %d", lives);
+      al_draw_textf(Arial20, BLACK, 650, 10, 0, "Score: %d", score);
+      al_draw_textf(Arial20, BLACK, 650, 40, 0, "Lives: %d", lives);
+      al_draw_textf(Arial20, BLACK, 650, 70, 0, "Vitesse x: %.2f", fabs(ballVector[0]));
+      al_draw_textf(Arial20, BLACK, 650, 100, 0, "Vitesse y: %.2f", fabs(ballVector[1]));
+
+      al_draw_line(630,380,SCREEN_WIDTH+SCORE_WIDTH,380,BLACK,10);
+      al_draw_text(Arial20, BLACK, 655, 390, 0, "COMMANDS");
+      al_draw_text(Arial16, BLACK, 650, 420, 0, "left: leftArrow or a");
+      al_draw_text(Arial16, BLACK, 650, 440, 0, "left: rightArrow or d");
+      al_draw_text(Arial16, BLACK, 650, 460, 0, "sprint: toggle ctrl");
 
       if(lives == 0)
         {
@@ -339,13 +366,15 @@ int main()
       free(coordMatrix);
 		}
 		al_flip_display();
+    //al_rest(0.01);
     //running = false;
   }
 
   al_shutdown_primitives_addon();
   al_uninstall_mouse();
   al_uninstall_keyboard();
-  al_destroy_font(font);
+  al_destroy_font(Arial20);
+  al_destroy_font(Arial16);
   al_destroy_timer(timer);
   al_destroy_event_queue(queue);
   al_destroy_display(display);
