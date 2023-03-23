@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_acodec.h>
+#include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
 #include <math.h>
@@ -158,6 +160,12 @@ int main()
   ALLEGRO_TIMER *timer;
   ALLEGRO_FONT *Arial20;
   ALLEGRO_FONT *Arial16;
+  ALLEGRO_SAMPLE *ploc=NULL;
+  ALLEGRO_SAMPLE_INSTANCE *plocInstance=NULL;
+  ALLEGRO_SAMPLE *bam=NULL;
+  ALLEGRO_SAMPLE_INSTANCE *bamInstance=NULL;
+  ALLEGRO_SAMPLE *liv=NULL;
+  ALLEGRO_SAMPLE_INSTANCE *livInstance=NULL;
 
   al_init();
   al_install_keyboard();
@@ -165,6 +173,10 @@ int main()
   al_init_primitives_addon();
   al_init_font_addon();
   al_init_ttf_addon();
+  al_install_audio();
+  al_init_acodec_addon();
+
+  al_reserve_samples(2);
   // init random
   srand( time( 0 ) );
   
@@ -173,6 +185,19 @@ int main()
   timer =al_create_timer(1.0/60);
   Arial20 = al_load_font("source/arial.ttf", 20, 0);
   Arial16 = al_load_font("source/arial.ttf", 16, 0);
+  ploc=al_load_sample("source/ploc.wav");
+  bam=al_load_sample("source/bam.wav");
+  liv=al_load_sample("source/loose1.wav");
+
+  plocInstance=al_create_sample_instance(ploc);
+  bamInstance=al_create_sample_instance(bam);
+  livInstance=al_create_sample_instance(liv);
+  al_attach_sample_instance_to_mixer(plocInstance, al_get_default_mixer());
+  al_attach_sample_instance_to_mixer(bamInstance, al_get_default_mixer());
+  al_attach_sample_instance_to_mixer(livInstance, al_get_default_mixer());
+
+  //al_play_sample_instance(plocInstance);
+  //al_play_sample_instance(bamInstance);
 
   al_register_event_source(queue, al_get_keyboard_event_source()     );
   al_register_event_source(queue, al_get_display_event_source(display));
@@ -233,6 +258,7 @@ int main()
         cy=SCREEN_WIDTH/2;
         i=0;
         lives-=1;
+        al_play_sample_instance(livInstance);
       
       }
 			//gerer les deplacement de la bar
@@ -282,15 +308,18 @@ int main()
       if(((cx+BALL_SIZE)>SCREEN_WIDTH-1 && ballVector[0]>0))
         {
           ballVector[0] = -(ballVector[0] + vx);
+          al_play_sample_instance(plocInstance);
         }
       if(((cx-BALL_SIZE)<1 && ballVector[0]<0) )
         {
           ballVector[0] = -(ballVector[0] - vx);
+          al_play_sample_instance(plocInstance);
         }
             //haut      
       if((cy-BALL_SIZE)<1 && ballVector[1] <0)
         {
             ballVector[1] = -(ballVector[1] - vy);
+            al_play_sample_instance(plocInstance);
         }
 
       //bar collision avec la ball
@@ -310,6 +339,7 @@ int main()
         	ballVector[0] = -(ballVector[0] - vx);
           
     		}
+        al_play_sample_instance(plocInstance);
         //printf("la vitesse de la balle x:%f, y:%f \n",ballVector[0],ballVector[1]);
       }
 
@@ -320,7 +350,7 @@ int main()
 			cx+=ballVector[0];
 
 			collision = checkCollision(cx,cy,ballVector,coordMatrix);
-			if(collision==1) {ballVector[1] = -(ballVector[1]-vy);score+=1;}
+			if(collision==1) {ballVector[1] = -(ballVector[1]-vy);score+=1;al_play_sample_instance(bamInstance);}
 			else if(collision==2) {
         if(ballVector < 0)
         {
@@ -331,6 +361,7 @@ int main()
           ballVector[0] = -(ballVector[0]+vx);
         }
         score+=1;
+        al_play_sample_instance(bamInstance);
       }
 
       al_draw_filled_rectangle(642,0,SCREEN_WIDTH+SCORE_WIDTH,SCREEN_HEIGHT,GREY);
@@ -339,11 +370,12 @@ int main()
       al_draw_textf(Arial20, BLACK, 650, 70, 0, "Vitesse x: %.2f", fabs(ballVector[0]));
       al_draw_textf(Arial20, BLACK, 650, 100, 0, "Vitesse y: %.2f", fabs(ballVector[1]));
 
-      al_draw_line(630,380,SCREEN_WIDTH+SCORE_WIDTH,380,BLACK,10);
-      al_draw_text(Arial20, BLACK, 655, 390, 0, "COMMANDS");
-      al_draw_text(Arial16, BLACK, 650, 420, 0, "left: leftArrow or a");
-      al_draw_text(Arial16, BLACK, 650, 440, 0, "left: rightArrow or d");
-      al_draw_text(Arial16, BLACK, 650, 460, 0, "sprint: toggle ctrl");
+      al_draw_line(630,360,SCREEN_WIDTH+SCORE_WIDTH,360,BLACK,10);
+      al_draw_text(Arial20, BLACK, 655, 370, 0, "COMMANDS");
+      al_draw_text(Arial16, BLACK, 650, 400, 0, "left: leftArrow or a");
+      al_draw_text(Arial16, BLACK, 650, 420, 0, "right: rightArrow or d");
+      al_draw_text(Arial16, BLACK, 650, 440, 0, "sprint: toggle ctrl");
+      al_draw_text(Arial16, BLACK, 650, 460, 0, "quit:echap or classic");
 
       if(lives == 0)
         {
@@ -373,11 +405,19 @@ int main()
   al_shutdown_primitives_addon();
   al_uninstall_mouse();
   al_uninstall_keyboard();
+  al_destroy_sample(ploc);
+  al_destroy_sample_instance(plocInstance);
+  al_destroy_sample(bam);
+  al_destroy_sample_instance(bamInstance);
+  al_destroy_sample(liv);
+  al_destroy_sample_instance(livInstance);
   al_destroy_font(Arial20);
   al_destroy_font(Arial16);
+  al_uninstall_audio();
   al_destroy_timer(timer);
   al_destroy_event_queue(queue);
   al_destroy_display(display);
+  al_shutdown_font_addon();
   
 	return 0;
 }
